@@ -8,9 +8,17 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1" 
+  # Configuration options
+  # access ve secret
+  region = "us-east-1"
+}
+variable "key" {
+  default = "jenkins-project"
 }
 
+variable "user" {
+  default = "techpro"
+}
 
 resource "aws_instance" "managed_nodes" {
   ami = "ami-0230bd60aa48260c6"
@@ -22,6 +30,7 @@ resource "aws_instance" "managed_nodes" {
     Name = "jenkins_project"
   }
 }
+
 
 resource "aws_security_group" "tf-sec-gr" {
   name = "project-jenkins-sec-gr"
@@ -65,4 +74,3 @@ resource "aws_security_group" "tf-sec-gr" {
 output "node_public_ip" {
   value = aws_instance.managed_nodes.public_ip
 }
-
