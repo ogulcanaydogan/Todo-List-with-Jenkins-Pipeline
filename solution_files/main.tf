@@ -8,6 +8,8 @@ terraform {
 }
 
 provider "aws" {
+  # Configuration options
+  # access ve secret
   region = "us-east-1"
 }
 variable "key" {
