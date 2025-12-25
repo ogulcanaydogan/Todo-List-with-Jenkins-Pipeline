@@ -1,102 +1,142 @@
-![resim](jenkinsproject.png)
+![Pipeline Diagram](jenkinsproject.png)
 
-# MAİN.TF
+# Todo List Application - CI/CD with Jenkins, Terraform, Ansible, and Docker
 
-## Provider Settings
+End-to-end DevOps project demonstrating infrastructure provisioning with Terraform, server configuration with Ansible, containerized application deployment with Docker Compose, and CI/CD automation using Jenkins on AWS EC2.
 
-- **AWS Provider:** Utilizes the Hashicorp AWS module with version `5.45.0`.
-- **Region Configuration:** Configured to deploy resources in the AWS `us-east-1` region.
+## Key Highlights
+- Infrastructure provisioning with Terraform (AWS EC2, Security Groups, IAM)
+- Configuration management with Ansible
+- CI/CD pipeline implemented using Jenkins
+- Containerized full-stack application (React + Node.js + PostgreSQL)
+- Docker Compose-based deployment
+- AWS ECR authentication for container workflows
 
-## Variables
+---
 
-- **Key Variable:** The `key` variable is set to `"jenkins-project"` and is used as the name for the SSH key pair for the EC2 instance.
-- **User Variable:** The `user` variable is set to `"techpro"` which is used to determine user-specific configurations or contexts.
+## Infrastructure (Terraform - `main.tf`)
 
-## EC2 Instance
+### Provider Configuration
+- **Provider:** AWS (HashiCorp)
+- **Version:** `~> 5.45.0`
+- **Region:** `us-east-1`
 
-- **Resource Type:** `aws_instance`
+### Variables
+- **key:** `jenkins-project`  
+  Used as the SSH key pair name for EC2 access.
+- **user:** `techpro`  
+  Used for user-specific naming and configuration.
+
+### EC2 Instance
+- **Resource:** `aws_instance`
 - **Instance Type:** `t2.micro`
-- **AMI:** The AMI used is `"ami-0230bd60aa48260c6"`.
-- **IAM Role:** Associated with a specific IAM role named `jenkins-project-profile-techpro`.
-- **Tags:** The instance is tagged with a `Name` of `"jenkins_project"`.
+- **AMI:** `ami-0230bd60aa48260c6`
+- **IAM Role:** `jenkins-project-profile-techpro`
+- **Tags:**
+  - `Name = jenkins_project`
 
-## Security Group
+### Security Group
+- **Name:** `project-jenkins-sec-gr`
 
-- **Resource Name:** `aws_security_group` with the name `"project-jenkins-sec-gr"`.
-- **Ingress Rules:**
-  - Allows incoming connections on port 22 (SSH).
-  - Allows incoming connections on port 5000 for web applications.
-  - Allows incoming connections on port 3000 for additional web interfaces.
-  - Allows incoming connections on port 5432 for PostgreSQL database access.
-- **Egress Rules:**
-  - Allows all outgoing traffic from any port to any destination (`0.0.0.0/0`).
+#### Ingress Rules
+- `22` - SSH access
+- `5000` - Backend API (Node.js)
+- `3000` - Frontend (React)
+- `5432` - PostgreSQL
 
-## Outputs
+#### Egress Rules
+- Allow all outbound traffic (`0.0.0.0/0`)
 
-- **Public IP:** The script outputs the public IP address of the created EC2 instance as `node_public_ip`.
+### Outputs
+- **node_public_ip**  
+  Public IP address of the provisioned EC2 instance
 
+---
 
+## Configuration Management (Ansible - `playbook.yaml`)
 
+The Ansible playbook prepares the EC2 instance for containerized workloads.
 
-# Playbook.yaml
+### Tasks Overview
 
+- Update system packages
+- Remove legacy Docker packages
+- Install required system utilities
+- Install and configure Docker
+- Add `ec2-user` to Docker group
+- Enable Docker service on boot
+- Install Docker Compose
+- Authenticate Docker with AWS ECR
+- Copy `docker-compose.yml` to the server
+- Start the application using Docker Compose (detached mode)
 
-## Update System Packages
-- **Description:** Updates all packages on the system to their latest versions.
-- **Command:** `sudo yum update -y`
+---
 
-## Remove Old Docker Versions
-- **Description:** Removes old Docker packages installed from the CentOS repository.
-- **Packages Removed:**
-  - docker
-  - docker-client
-  - docker-client-latest
-  - docker-common
-  - docker-latest
-  - docker-latest-logrotate
-  - docker-logrotate
-  - docker-engine
+## Application Stack (Docker Compose)
 
-## Install Yum Utilities
-- **Description:** Installs necessary utilities for managing packages.
-- **Utilities Installed:**
-  - yum-utils
-  - device-mapper-persistent-data
-  - lvm2
-  - unzip
+### Services
+- **Frontend:** React
+- **Backend:** Node.js
+- **Database:** PostgreSQL
 
-## Install Docker
-- **Description:** Installs the latest version of Docker using yum.
+### Environment Variables
 
-## Add User to Docker Group
-- **Description:** Adds the `ec2-user` to the Docker group to allow running Docker without 
+#### PostgreSQL
+- `POSTGRES_PASSWORD` (injected at runtime)
 
-## Start Docker Service
-- **Description:** Starts and enables the Docker service to run on boot.
+#### Backend (Node.js)
+- `SERVER_PORT=5000`
+- `DB_USER=postgres`
+- `DB_PASSWORD` (injected at runtime)
+- `DB_NAME=techprotodo`
+- `DB_HOST=todo_postgre`
+- `DB_PORT=5432`
 
-## Install Docker Compose
-- **Description:** Downloads and installs Docker Compose.
+#### Frontend (React)
+- `REACT_APP_BASE_URL=http://${NODE_IP}:5000/`
 
-## Log in to AWS ECR
-- **Description:** Logs into AWS Elastic Container Registry using Docker.
+> Note: In a production setup, secrets should be managed via Jenkins credentials or AWS Secrets Manager instead of plain environment variables.
 
+---
 
-## Copy docker-compose.yml to Server
-- **Description:** Copies the local `docker-compose.yml` file to the server's `/home/ec2-user/` directory.
+## CI/CD Pipeline (Jenkins)
 
-## Start Application with Docker Compose
-- **Description:** Starts the application using Docker Compose in detached mode.
+The Jenkins pipeline automates the full deployment lifecycle.
 
-# docker-compose.yaml
-env variables: 
-- postgre container -->> POSTGRES_PASSWORD: Pp123456789
-- react container -->> REACT_APP_BASE_URL: http://${NODE_IP}:5000/
-- nodejs -->>
-            SERVER_PORT: 5000
-            DB_USER: postgres
-            DB_PASSWORD: Pp123456789
-            DB_NAME: techprotodo
-            DB_HOST: todo_postgre
-            DB_PORT: 5432
+### Pipeline Responsibilities
+- Pull application source code
+- Build application artifacts
+- Provision infrastructure using Terraform
+- Configure EC2 instance using Ansible
+- Deploy application using Docker Compose
+- Enable repeatable, automated deployments
 
-# Jenkinsfile
+The pipeline is defined declaratively in the `Jenkinsfile`.
+
+---
+
+## Deployment Flow
+1. Jenkins triggers the pipeline on code changes
+2. Terraform provisions AWS infrastructure
+3. Ansible configures the EC2 instance
+4. Docker images are built and run via Docker Compose
+5. Application becomes accessible via EC2 public IP
+
+---
+
+## Production Notes (Improvements to Consider)
+- Use Terraform remote backend (S3 + DynamoDB) for state management
+- Replace hardcoded secrets with Jenkins credentials or AWS Secrets Manager
+- Add pipeline stages for linting, testing, and security scans
+- Introduce HTTPS and reverse proxy (ALB or Nginx)
+- Migrate from EC2 + Docker Compose to ECS or EKS for scalability
+
+---
+
+## Technologies Used
+- AWS EC2, IAM, Security Groups
+- Terraform
+- Ansible
+- Jenkins
+- Docker & Docker Compose
+- Node.js, React, PostgreSQL
